@@ -5,9 +5,19 @@ import io
 import tempfile
 import os
 
-# Profiling
-from ydata_profiling import ProfileReport
-import sweetviz as sv
+# Safe import for profiling
+try:
+    from ydata_profiling import ProfileReport
+    PROFILING_AVAILABLE = True
+except ImportError:
+    PROFILING_AVAILABLE = False
+
+# Sweetviz
+try:
+    import sweetviz as sv
+    SWEETVIZ_AVAILABLE = True
+except ImportError:
+    SWEETVIZ_AVAILABLE = False
 
 # Visualization
 import matplotlib.pyplot as plt
@@ -22,7 +32,6 @@ uploaded_file = st.file_uploader("Upload your CSV file", type=["csv"])
 
 if uploaded_file is not None:
     try:
-        # Load dataset
         df = pd.read_csv(uploaded_file)
         st.success("File uploaded successfully!")
 
@@ -44,8 +53,7 @@ if uploaded_file is not None:
         # MISSING VALUES
         # =========================
         st.subheader("❗ Missing Values")
-        missing = df.isnull().sum()
-        st.dataframe(missing)
+        st.dataframe(df.isnull().sum())
 
         # =========================
         # VISUALIZATIONS
@@ -61,13 +69,12 @@ if uploaded_file is not None:
             sns.histplot(df[selected_col], kde=True, ax=ax)
             st.pyplot(fig)
 
-            # Correlation heatmap
             st.subheader("🔥 Correlation Heatmap")
             fig2, ax2 = plt.subplots()
             sns.heatmap(df[numeric_cols].corr(), annot=True, cmap="coolwarm", ax=ax2)
             st.pyplot(fig2)
         else:
-            st.warning("No numeric columns available for visualization.")
+            st.warning("No numeric columns available.")
 
         # =========================
         # REPORT GENERATION
@@ -75,38 +82,44 @@ if uploaded_file is not None:
         st.subheader("📄 Generate Full Reports")
 
         if st.button("Generate Reports"):
-            
+
             # -------- YData Profiling --------
-            with st.spinner("Generating YData Profiling report..."):
-                profile = ProfileReport(df, title="EDA Report", explorative=True)
-                profile_html = profile.to_html()
+            if PROFILING_AVAILABLE:
+                with st.spinner("Generating YData Profiling report..."):
+                    profile = ProfileReport(df, title="EDA Report", explorative=True)
+                    profile_html = profile.to_html()
 
-            st.download_button(
-                label="📥 Download YData Profiling Report",
-                data=profile_html,
-                file_name="ydata_profiling_report.html",
-                mime="text/html"
-            )
+                st.download_button(
+                    label="📥 Download YData Profiling Report",
+                    data=profile_html,
+                    file_name="ydata_report.html",
+                    mime="text/html"
+                )
+            else:
+                st.warning("ydata-profiling is not installed.")
 
-            # -------- Sweetviz Report --------
-            with st.spinner("Generating Sweetviz report..."):
-                temp_dir = tempfile.mkdtemp()
-                sweetviz_path = os.path.join(temp_dir, "sweetviz_report.html")
+            # -------- Sweetviz --------
+            if SWEETVIZ_AVAILABLE:
+                with st.spinner("Generating Sweetviz report..."):
+                    temp_dir = tempfile.mkdtemp()
+                    path = os.path.join(temp_dir, "sweetviz.html")
 
-                report = sv.analyze(df)
-                report.show_html(sweetviz_path, open_browser=False)
+                    report = sv.analyze(df)
+                    report.show_html(path, open_browser=False)
 
-                with open(sweetviz_path, "r", encoding="utf-8") as f:
-                    sweetviz_html = f.read()
+                    with open(path, "r", encoding="utf-8") as f:
+                        sweetviz_html = f.read()
 
-            st.download_button(
-                label="📥 Download Sweetviz Report",
-                data=sweetviz_html,
-                file_name="sweetviz_report.html",
-                mime="text/html"
-            )
+                st.download_button(
+                    label="📥 Download Sweetviz Report",
+                    data=sweetviz_html,
+                    file_name="sweetviz_report.html",
+                    mime="text/html"
+                )
+            else:
+                st.warning("Sweetviz is not installed.")
 
-            st.success("Both reports generated successfully!")
+            st.success("Report generation completed!")
 
     except Exception as e:
         st.error(f"Error processing file: {e}")
