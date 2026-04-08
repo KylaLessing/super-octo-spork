@@ -4,9 +4,9 @@ import sweetviz as sv
 import tempfile
 import os
 
-st.set_page_config(page_title="Sweetviz Report Generator", layout="wide")
+st.set_page_config(page_title="Random Questions Dataset", layout="wide")
 
-st.title("📊 Sweetviz Report Generator")
+st.title("📊 Random Questions Dataset")
 
 uploaded_file = st.file_uploader("Upload your CSV file", type=["csv"])
 
